@@ -28,13 +28,16 @@ textarea{width:100%;border:1px solid #ccc;border-radius:8px;padding:8px 10px;fon
 textarea:focus{outline:none;border-color:#888}
 textarea::placeholder{color:#aaa}
 .preview-card{background:#fff;border:1px solid #e0dfd8;border-radius:12px;padding:1.25rem;margin-top:1.25rem}
-.preview-pre{font-size:12px;color:#555;line-height:1.8;white-space:pre-wrap;font-family:monospace}
-.copy-btn{width:100%;margin-top:1rem;padding:10px;font-size:13px;font-weight:500;border:1px solid #ccc;border-radius:8px;background:none;color:#555;cursor:pointer;transition:background .15s}
-.copy-btn:hover{background:#f5f5f0}
-.copy-btn.ok{color:#27500A;border-color:#639922}
+.preview-output{font-size:13px;color:#1a1a1a;line-height:1.8;white-space:pre-wrap;font-family:system-ui,-apple-system,sans-serif;width:100%;min-height:80px;border:none;background:transparent;resize:none;-webkit-user-select:all;user-select:all}
+.copy-btn{width:100%;margin-top:1rem;padding:12px;font-size:14px;font-weight:600;border:none;border-radius:10px;background:#085041;color:#fff;cursor:pointer;transition:opacity .15s}
+.copy-btn:active{opacity:.8}
+.copy-btn.ok{background:#27500A}
 .divider{height:1px;background:#e0dfd8;margin:1.25rem 0}
 .preview-label{font-size:11px;font-weight:500;color:#888;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.625rem}
 .tip{font-size:12px;color:#aaa;margin-top:.75rem;line-height:1.6;text-align:center}
+.hint{font-size:11px;color:#aaa;margin-top:.375rem;text-align:center}
+.gen-btn{width:100%;margin-top:1rem;padding:12px;font-size:14px;font-weight:600;border:none;border-radius:10px;background:#3C3489;color:#fff;cursor:pointer;transition:opacity .15s}
+.gen-btn:active{opacity:.8}
 </style>
 </head>
 <body>
@@ -51,7 +54,7 @@ textarea::placeholder{color:#aaa}
     <div class="section-icon si-green">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3.5" stroke="#27500A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <span class="section-label sl-green">Fait aujourd'hui</span>
+    <span class="section-label sl-green">✅ Fait aujourd'hui</span>
   </div>
   <textarea id="done" placeholder="Tâche terminée&#10;Autre tâche terminée" oninput="update()"></textarea>
 </div>
@@ -60,7 +63,7 @@ textarea::placeholder{color:#aaa}
     <div class="section-icon si-teal">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5C4.5 2.5 2.5 4.5 2.5 7s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5z" stroke="#085041" stroke-width="1.5"/><path d="M7 5v2.5l1.5 1.5" stroke="#085041" stroke-width="1.5" stroke-linecap="round"/></svg>
     </div>
-    <span class="section-label sl-teal">En cours</span>
+    <span class="section-label sl-teal">⏳ En cours</span>
   </div>
   <textarea id="wip" placeholder="Tâche en cours (avancement)&#10;Autre tâche en cours" oninput="update()"></textarea>
 </div>
@@ -69,9 +72,74 @@ textarea::placeholder{color:#aaa}
     <div class="section-icon si-amber">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2L12.5 11.5H1.5Z" stroke="#633806" stroke-width="1.5" stroke-linejoin="round"/><line x1="7" y1="6" x2="7" y2="8.5" stroke="#633806" stroke-width="1.5" stroke-linecap="round"/><circle cx="7" cy="10" r=".6" fill="#633806"/></svg>
     </div>
-    <span class="section-label sl-amber">Bloqué — besoin de toi</span>
+    <span class="section-label sl-amber">⚠️ Bloqué — besoin de toi</span>
   </div>
   <textarea id="blocked" placeholder="Ce qui est bloqué et pourquoi" oninput="update()"></textarea>
 </div>
 <div class="section">
   <div class="section-head">
+    <div class="section-icon si-purple">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2.5" y="1.5" width="9" height="11" rx="1.5" stroke="#3C3489" stroke-width="1.5"/><line x1="5" y1="5" x2="9" y2="5" stroke="#3C3489" stroke-width="1.2" stroke-linecap="round"/><line x1="5" y1="7.5" x2="9" y2="7.5" stroke="#3C3489" stroke-width="1.2" stroke-linecap="round"/><line x1="5" y1="10" x2="7.5" y2="10" stroke="#3C3489" stroke-width="1.2" stroke-linecap="round"/></svg>
+    </div>
+    <span class="section-label sl-purple">📌 Livraison prévue demain</span>
+  </div>
+  <textarea id="tomorrow" placeholder="Ce que tu livres demain" oninput="update()"></textarea>
+</div>
+<button class="gen-btn" onclick="generate()">Générer le message ↓</button>
+<div class="divider"></div>
+<div class="preview-label">Message à copier</div>
+<div class="preview-card">
+  <textarea class="preview-output" id="preview" readonly>Remplis les champs et appuie sur "Générer".</textarea>
+</div>
+<button class="copy-btn" id="copybtn" onclick="copyMsg()">Copier le message ↗</button>
+<p class="hint">Sur iPhone : appuie longuement sur le texte → Tout sélectionner → Copier</p>
+<p class="tip">Règle d'or : même si la journée a été nulle, tu envoies.</p>
+</div>
+<script>
+function getLines(id){return document.getElementById(id).value.split('\n').map(function(l){return l.trim();}).filter(Boolean);}
+function buildMsg(){
+  var done=getLines('done'),wip=getLines('wip'),blocked=getLines('blocked'),tom=getLines('tomorrow');
+  if(!done.length&&!wip.length&&!blocked.length&&!tom.length) return '';
+  var today=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  var msg='Récap du '+today+'\n\n';
+  if(done.length){msg+='✅ *Fait aujourd\'hui*\n';done.forEach(function(t,i){msg+=(i+1)+'. '+t+'\n';});msg+='\n';}
+  if(wip.length){msg+='⏳ *En cours*\n';wip.forEach(function(t,i){msg+=(i+1)+'. '+t+'\n';});msg+='\n';}
+  if(blocked.length){msg+='⚠️ *Bloqué — besoin de toi*\n';blocked.forEach(function(t,i){msg+=(i+1)+'. '+t+'\n';});msg+='\n';}
+  if(tom.length){msg+='📌 *Livraison prévue demain*\n';tom.forEach(function(t,i){msg+=(i+1)+'. '+t+'\n';});}
+  return msg.trim();
+}
+function update(){}
+function generate(){
+  var msg=buildMsg();
+  var preview=document.getElementById('preview');
+  preview.value=msg||'Remplis au moins un champ.';
+  preview.style.height='auto';
+  preview.style.height=preview.scrollHeight+'px';
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(msg).then(function(){
+      var btn=document.getElementById('copybtn');
+      btn.textContent='Copié ! ✓';btn.classList.add('ok');
+      setTimeout(function(){btn.textContent='Copier le message ↗';btn.classList.remove('ok');},2000);
+    }).catch(function(){selectAll();});
+  } else {selectAll();}
+  preview.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function selectAll(){
+  var preview=document.getElementById('preview');
+  preview.focus();preview.select();
+}
+function copyMsg(){
+  var msg=document.getElementById('preview').value;
+  if(!msg||msg==='Remplis au moins un champ.'||msg==='Remplis les champs et appuie sur "Générer".') return;
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(msg).then(function(){
+      var btn=document.getElementById('copybtn');
+      btn.textContent='Copié ! ✓';btn.classList.add('ok');
+      setTimeout(function(){btn.textContent='Copier le message ↗';btn.classList.remove('ok');},2000);
+    }).catch(function(){selectAll();});
+  } else {selectAll();}
+}
+document.getElementById('today-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+</script>
+</body>
+</html>
